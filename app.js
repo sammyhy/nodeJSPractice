@@ -4,6 +4,8 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const dotenv = require("dotenv");
 const path = require("path");
+const multer = require("multer");
+const fs = require("fs");
 
 dotenv.config();
 const app = express();
@@ -27,6 +29,38 @@ app.use(
   })
 );
 
+try {
+  fs.readdirSync("uploads");
+} catch (error) {
+  console.error("not find such a directory, create uploads directory!");
+  fs.mkdirSync("uploads");
+}
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination(req, file, done) {
+      done(null, "uploads/");
+    },
+    filename(req, file, done) {
+      const ext = path.extname(file.originalname);
+      done(null, path.basename(file.originalname, ext) + Date.now() + ext);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+app.get("/upload", (req, res) => {
+  res.sendFile(path.join(__dirname, "multipart.html"));
+});
+
+app.post(
+  "/upload",
+  upload.fields([{ name: "image1" }, { name: "image2" }]),
+  (req, res) => {
+    console.log(req.files, req.body);
+    res.send("ok");
+  }
+);
 app.use((req, res, next) => {
   console.log("모든 요청 전부 실행");
   next();
