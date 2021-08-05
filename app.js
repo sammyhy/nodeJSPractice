@@ -1,15 +1,27 @@
 const express = require("express");
+const { swaggerUi, specs } = require("./swagger");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const dotenv = require("dotenv");
 const path = require("path");
+const nunjucks = require("nunjucks");
 const multer = require("multer");
 const fs = require("fs");
 
 dotenv.config();
 const app = express();
+const indexRouter = require("./routes/index");
+const userRouter = require("./routes/user");
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 app.set("port", process.env.PORT || 3000);
+app.set("view engine", "html");
+
+nunjucks.configure("views", {
+  express: app,
+  watch: true,
+});
 
 app.use(morgan("dev"));
 app.use("/", express.static(path.join(__dirname, "public")));
@@ -28,6 +40,13 @@ app.use(
     name: "session-cookie",
   })
 );
+
+app.use("/", indexRouter);
+app.use("/user", userRouter);
+
+app.use((req, res, next) => {
+  res.status(404).send("Not Found");
+});
 
 try {
   fs.readdirSync("uploads");
